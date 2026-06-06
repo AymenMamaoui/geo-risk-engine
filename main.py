@@ -1,45 +1,68 @@
 import sys
 import os
 
-# Ajout du répertoire racine au PYTHONPATH pour permettre les imports depuis 'agents' et 'schemas'
+# Ajout du répertoire racine au PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Imports des agents et outils
 from agents.meteo_agent import MeteoAgent
+from agents.hydro_agent import HydroAgent
 from tools.pdf_loader import extraire_texte_depuis_url
 
 
-def run_meteo_pipeline():
-    # URL du bulletin PDF
+# Test de l'agent météorologique
+def test_meteo_agent():
+    print(f"\n--- Démarrage de la pipeline Météo ---")
     url_bulletin = "https://medias24.com/content/uploads/2026/02/02/Bulletin_meteo_alerte-2-fev.pdf"
 
-    print(f"--- Démarrage de la pipeline Météo ---")
-
     try:
-        # 1. Extraction du texte depuis le PDF
-        print(f"[1/2] Extraction du texte depuis : {url_bulletin}...")
-        texte_bulletin = extraire_texte_depuis_url(url_bulletin)
-
-        if not texte_bulletin.strip():
-            print("Erreur : Le texte extrait est vide.")
-            return
-
-        # 2. Analyse par l'Agent IA
-        print(f"[2/2] Analyse par l'Agent Météorologique...")
+        texte = extraire_texte_depuis_url(url_bulletin)
         agent = MeteoAgent()
-        resultat = agent.extraire_donnees(texte_bulletin)
 
-        # 3. Affichage du résultat structuré
-        print("\n--- Analyse Terminée ---")
-        print(f"Bulletin ID: {resultat.id_bulletin}")
-        for phenomene in resultat.phenomenes:
-            print(f"\nPhénomène détecté : {phenomene.type_phenomene}")
-            for alerte in phenomene.alertes:
-                print(f" - Niveau vigilance : {alerte.niveau_vigilance}")
-                print(f" - Zones : {[zone.provinces for zone in alerte.details_zones]}")
+        # 1. Extraction Brute
+        print("[1/2] Structuration des données brutes...")
+        donnees_brutes = agent.extraire_donnees(texte)
+
+        # 2. Analyse et Prédiction (Génération du JSON final)
+        print("[2/2] Aplatissement et prédiction des risques par province...")
+        # Ajout de 'texte' comme second argument
+        rapport_final = agent.predire_risques_meteo(donnees_brutes, texte)
+
+        print("\n--- Analyse Météo Terminée ---")
+
+        import json
+        print(rapport_final.model_dump_json(indent=2))
 
     except Exception as e:
-        print(f"\nUne erreur est survenue lors de l'exécution : {e}")
+        print(f"Erreur Météo : {e}")
+
+# Test de l'agent hydraulique
+def test_hydro_agent():
+    print(f"\n--- Démarrage de la pipeline Hydraulique ---")
+    url_barrages = "https://lnt.ma/wp-content/uploads/2017/12/barrages.pdf"
+    url_oueds = "https://pastebin.com/raw/w8USynG4"
+
+    try:
+        agent = HydroAgent()
+        # Extraction
+        data_b = agent.analyser_barrages(extraire_texte_depuis_url(url_barrages))
+        data_o = agent.analyser_oueds(extraire_texte_depuis_url(url_oueds))
+
+        # Prédiction des risques
+        rapport = agent.predire_risques_hydrauliques(data_b, data_o)
+
+        print("\n--- Analyse Hydraulique Terminée ---")
+        for r in rapport.risques_hydrauliques:
+            print(f"[{r.niveau_severite_agent}] {r.infrastructure_concernee}: {r.justification}")
+    except Exception as e:
+        print(f"Erreur Hydraulique : {e}")
+
+
+    print(f"DEBUG - Nombre de barrages extraits : {len(data_b.barrages)}")
 
 
 if __name__ == "__main__":
-    run_meteo_pipeline()
+    # Il suffit de décommenter la fonction que je veux tester
+
+    # test_meteo_agent()
+     test_hydro_agent()

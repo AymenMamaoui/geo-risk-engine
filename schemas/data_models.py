@@ -33,6 +33,7 @@ class ZoneRisqueMeteo(BaseModel):
     justification: str
 
 class MeteoAnalysisReport(BaseModel):
+    id_bulletin: Optional[float] = Field(None, description="L'ID du bulletin DGM ayant généré cette analyse")
     zones_urgentes: List[ZoneRisqueMeteo]
 
 
@@ -40,8 +41,8 @@ class MeteoAnalysisReport(BaseModel):
 
 class Barrage(BaseModel):
     nom_barrage: str
-    capacite_normale_mm3: float
-    reserve_actuelle_mm3: float
+    capacite_normale_mm3: Optional[float] = None
+    reserve_actuelle_mm3: Optional[float] = None
     taux_remplissage_pourcentage: float
 
 class HydrauliqueRawExtraction(BaseModel):
