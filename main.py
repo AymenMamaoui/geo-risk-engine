@@ -29,12 +29,11 @@ def test_meteo_agent():
         rapport_final = agent.predire_risques_meteo(donnees_brutes, texte)
 
         print("\n--- Analyse Météo Terminée ---")
-
-        import json
         print(rapport_final.model_dump_json(indent=2))
 
     except Exception as e:
         print(f"Erreur Météo : {e}")
+
 
 # Test de l'agent hydraulique
 def test_hydro_agent():
@@ -48,21 +47,21 @@ def test_hydro_agent():
         data_b = agent.analyser_barrages(extraire_texte_depuis_url(url_barrages))
         data_o = agent.analyser_oueds(extraire_texte_depuis_url(url_oueds))
 
+        # Affichage du debug ici, pendant que data_b est disponible !
+        print(f"DEBUG - Nombre de barrages extraits au total : {len(data_b.barrages)}")
+
         # Prédiction des risques
         rapport = agent.predire_risques_hydrauliques(data_b, data_o)
 
         print("\n--- Analyse Hydraulique Terminée ---")
-        for r in rapport.risques_hydrauliques:
-            print(f"[{r.niveau_severite_agent}] {r.infrastructure_concernee}: {r.justification}")
+        print(rapport.model_dump_json(indent=2))
+
     except Exception as e:
         print(f"Erreur Hydraulique : {e}")
-
-
-    print(f"DEBUG - Nombre de barrages extraits : {len(data_b.barrages)}")
 
 
 if __name__ == "__main__":
     # Il suffit de décommenter la fonction que je veux tester
 
     # test_meteo_agent()
-     test_hydro_agent()
+    test_hydro_agent()
