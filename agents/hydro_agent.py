@@ -9,7 +9,6 @@ from schemas.data_models import (
     HydrauliqueOuedsExtraction
 )
 
-
 class HydroAgent:
     def __init__(self):
         # Utilisation du modèle 70b pour la précision
@@ -33,41 +32,52 @@ class HydroAgent:
         return (prompt | self.struct_oueds).invoke({"texte": texte})
 
     def predire_risques_hydrauliques(self, data_barrages, data_oueds):
-        # 1. FILTRAGE DÉTERMINISTE (Code Python infaillible)
-        # On ne garde que les barrages >= 85.0% avant même de parler à l'IA
+        # 1. FILTRAGE DÉTERMINISTE DES BARRAGES
         barrages_filtres = [
             b for b in data_barrages.barrages
             if b.taux_remplissage_pourcentage is not None and b.taux_remplissage_pourcentage >= 85.0
         ]
-        # On remplace la liste complète par la liste filtrée
         data_barrages.barrages = barrages_filtres
 
-        # 2. PRÉPARATION DU CONTEXTE ÉPURÉ
-        contexte = f"Barrages (>85% uniquement): {data_barrages.model_dump_json()}, Oueds: {data_oueds.model_dump_json()}"
+        # 2. FILTRAGE DÉTERMINISTE DES OUEDS (Correction du nom de l'attribut : alertes_oueds)
+        oueds_filtres = [
+            o for o in data_oueds.alertes_oueds
+            if o.niveau_vigilance is not None and o.niveau_vigilance.upper() in ["ROUGE", "ORANGE"]
+        ]
+        data_oueds.alertes_oueds = oueds_filtres
 
-        # 3. PROMPT SIMPLIFIÉ (L'IA fait ce qu'elle fait de mieux : du texte)
+        # 3. PRÉPARATION DU CONTEXTE ÉPURÉ
+        contexte = f"BARRAGES: {data_barrages.model_dump_json()}\nOUEDS: {data_oueds.model_dump_json()}"
+
+        # 4. PROMPT DE FORMATAGE STRICT (Phrases exactes de n8n)
         system_prompt = """
-        Tu es l'Agent Prédicteur des risques hydrologiques.
-        Toutes les données que tu reçois sont DÉJÀ filtrées et nécessitent obligatoirement une alerte.
+        Tu es un formateur de données JSON strict.
+        Toutes les données fournies sont déjà filtrées et nécessitent obligatoirement une alerte.
 
-        1. RÈGLES DE CLASSIFICATION :
-           - BARRAGES : Si taux >= 95% -> "CRITIQUE". Si taux entre 85% et 94.9% -> "HAUT".
-           - OUEDS : Vigilance ROUGE -> "CRITIQUE". Vigilance ORANGE -> "HAUT".
+        RÈGLES DE FORMATAGE OBLIGATOIRES POUR LES BARRAGES :
+        - infrastructure_concernee: "Barrage [Nom]" (ex: "Barrage ALLAL EL FASSI")
+        - type_infrastructure: "BARRAGE"
+        - indicateur_critique: "Remplissage: [X]%"
+        - niveau_severite_agent: Si X >= 95.0 -> "CRITIQUE". Si X entre 85.0 et 94.9 -> "HAUT".
+        - justification:
+            Si CRITIQUE: "Le taux de remplissage du [Nom] est de [X]%, ce qui est considéré comme critique en raison de son dépassement du seuil de 95%."
+            Si HAUT: "Le taux de remplissage du [Nom] est de [X]%, ce qui est considéré comme haut en raison de sa proximité avec le seuil critique de 85%."
 
-        2. MAPPAGE DES NOMS :
-           - Écris le nom complet. Ex: "Barrage ALLAL EL FASSI" ou "Oued Ouerrha".
+        RÈGLES DE FORMATAGE OBLIGATOIRES POUR LES OUEDS :
+        - infrastructure_concernee: "[Nom]" (ex: "Oued Ouerrha")
+        - type_infrastructure: "OUED"
+        - indicateur_critique: "Débit: [X] m3/s"
+        - niveau_severite_agent: Si ROUGE -> "CRITIQUE". Si ORANGE -> "HAUT".
+        - justification: 
+            Si ROUGE: "Le débit de l'[Nom] est de [X] m3/s, ce qui est considéré comme critique en raison de son niveau de vigilance ROUGE."
+            Si ORANGE: "Le débit de l'[Nom] est de [X] m3/s, ce qui est considéré comme haut en raison de son niveau de vigilance ORANGE."
 
-        3. FORMAT DE JUSTIFICATION :
-           - BARRAGES : "Le taux de remplissage du [Nom] est de [X]%, ce qui est [supérieur à 95% / compris entre 85% et 94.9%], donc un niveau de sévérité [Niveau]."
-           - OUEDS : "Le débit de l'[Nom] est de [X] m3/s, ce qui indique un niveau de vigilance [Couleur], donc un niveau de sévérité [Niveau]."
-
-        4. EXHAUSTIVITÉ :
-           - Tu DOIS générer un objet pour CHAQUE infrastructure présente dans le contexte fourni.
+        EXHAUSTIVITÉ : Génère un objet pour CHAQUE infrastructure présente dans le contexte.
         """
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
-            ("human", "Analyse ces données et génère le rapport structuré : {contexte}")
+            ("human", "Génère l'analyse avec les phrases exactes demandées : {contexte}")
         ])
 
         return (prompt | self.struct_risque).invoke({"contexte": contexte})

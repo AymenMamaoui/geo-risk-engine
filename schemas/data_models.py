@@ -45,10 +45,17 @@ class Barrage(BaseModel):
     reserve_actuelle_mm3: Optional[float] = None
     taux_remplissage_pourcentage: float
 
+class Oued(BaseModel):
+    nom_oued: str
+    debit_m3s: Optional[float] = None
+    niveau_vigilance: str
+
 class HydrauliqueRawExtraction(BaseModel):
     date_situation: Optional[str] = None
     taux_remplissage_global: Optional[float] = None
     barrages: List[Barrage]
+    oueds: List[Oued]
+
 
 class OuedAlerte(BaseModel):
     nom_oued: str
