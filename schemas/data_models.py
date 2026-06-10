@@ -83,7 +83,7 @@ class HydrauliqueAnalysisReport(BaseModel):
 
 class ConfluenceRisque(BaseModel):
     localisation_impactee: str
-    niveau_alerte_combine: str = Field(..., enum=["MAXIMALE", "EXTRÊME", "ÉLEVÉE"])
+    niveau_alerte_combine: str = Field(..., enum=["URGENCE NOIRE", "ALERTE ROUGE", "VIGILANCE ORANGE"])
     synthese_decisionnelle: str
     recommandations_terrain: str
 
