@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geo-Risk Maroc — Centre de Crise</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ═══ TOKENS ═══════════════════════════════════════════ */
+    :root {
+      --bg-root:    #03050D;
+      --bg-panel:   #070B16;
+      --bg-card:    rgba(10, 15, 28, 0.9);
+      --bg-sidebar: #05080F;
+      --border:     rgba(255,255,255,0.06);
+      --border-md:  rgba(255,255,255,0.11);
+
+      --text-bright:   #FFFFFF;
+      --text-primary:  #D8E2F0;
+      --text-secondary:#7A8EA8;
+      --text-dim:      #2E3D52;
+
+      --noire:      #FF1A3C;
+      --noire-dim:  rgba(255,26,60,.14);
+      --noire-glow: rgba(255,26,60,.40);
+      --noire-soft: rgba(255,26,60,.08);
+
+      --rouge:      #FF6320;
+      --rouge-dim:  rgba(255,99,32,.13);
+      --rouge-glow: rgba(255,99,32,.32);
+
+      --orange:     #F5B800;
+      --orange-dim: rgba(245,184,0,.11);
+      --orange-glow:rgba(245,184,0,.28);
+
+      --vert:       #00C87A;
+      --vert-dim:   rgba(0,200,122,.10);
+
+      --mono: 'JetBrains Mono', monospace;
+      --ui:   'Inter', sans-serif;
+
+      --r-card: 12px;
+      --r-sm:   6px;
+    }
+
+    /* ═══ RESET ═════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: var(--bg-root);
+      color: var(--text-primary);
+      font-family: var(--ui);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      opacity: .022;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 160px;
+    }
+
+    /* ═══ LAYOUT ════════════════════════════════════════════ */
+    .layout {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-rows: 52px 1fr;
+      grid-template-columns: 268px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .alert-banner { grid-column: 1 / -1; grid-row: 1; }
+    .sidebar       { grid-row: 2; overflow-y: auto; }
+    .main          { grid-row: 2; overflow-y: auto; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 2px; }
+
+    /* ═══ BANNER ════════════════════════════════════════════ */
+    .alert-banner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      background-image: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,.07) 2px, rgba(0,0,0,.07) 4px
+      );
+    }
+    .bn-URGENCE_NOIRE   { background-color: rgba(255,26,60,.07);  border-bottom-color: rgba(255,26,60,.35); }
+    .bn-ALERTE_ROUGE    { background-color: rgba(255,99,32,.06);  border-bottom-color: rgba(255,99,32,.28); }
+    .bn-VIGILANCE_ORANGE{ background-color: rgba(245,184,0,.05);  border-bottom-color: rgba(245,184,0,.22); }
+    .bn-NORMAL          { background-color: rgba(0,200,122,.04);  border-bottom-color: rgba(0,200,122,.18); }
+
+    .alert-banner::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+    }
+    .bn-URGENCE_NOIRE::after   { background: linear-gradient(90deg, var(--noire) 0%, transparent 55%); }
+    .bn-ALERTE_ROUGE::after    { background: linear-gradient(90deg, var(--rouge) 0%, transparent 55%); }
+    .bn-VIGILANCE_ORANGE::after{ background: linear-gradient(90deg, var(--orange) 0%, transparent 55%); }
+    .bn-NORMAL::after          { background: linear-gradient(90deg, var(--vert) 0%, transparent 55%); }
+
+    .banner-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .bn-URGENCE_NOIRE   .banner-dot { background: var(--noire);  animation: dotN 1s infinite; }
+    .bn-ALERTE_ROUGE    .banner-dot { background: var(--rouge);  animation: dotR 1.5s infinite; }
+    .bn-VIGILANCE_ORANGE .banner-dot{ background: var(--orange); animation: dotO 2s infinite; }
+    .bn-NORMAL          .banner-dot { background: var(--vert); }
+    @keyframes dotN { 0%,100%{box-shadow:0 0 0 0 var(--noire-glow)} 50%{box-shadow:0 0 0 8px transparent} }
+    @keyframes dotR { 0%,100%{box-shadow:0 0 0 0 var(--rouge-glow)} 50%{box-shadow:0 0 0 8px transparent} }
+    @keyframes dotO { 0%,100%{box-shadow:0 0 0 0 var(--orange-glow)} 50%{box-shadow:0 0 0 8px transparent} }
+
+    .banner-label {
+      font-family: var(--mono);
+      font-size: 12px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+    }
+    .bn-URGENCE_NOIRE   .banner-label { color: var(--noire); }
+    .bn-ALERTE_ROUGE    .banner-label { color: var(--rouge); }
+    .bn-VIGILANCE_ORANGE .banner-label{ color: var(--orange); }
+    .bn-NORMAL          .banner-label { color: var(--vert); }
+
+    .banner-sep { width: 1px; height: 22px; background: var(--border-md); flex-shrink: 0; }
+    .banner-right { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+    .banner-meta {
+      font-family: var(--mono); font-size: 10px; color: var(--text-secondary);
+      letter-spacing: .04em; display: flex; align-items: center; gap: 6px;
+    }
+    .banner-meta-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-dim); }
+    .banner-logo {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; color: var(--text-dim);
+    }
+
+    /* ═══ SIDEBAR ═══════════════════════════════════════════ */
+    .sidebar {
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+    }
+    .sidebar-hdr {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .sidebar-eyebrow {
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      letter-spacing: .15em; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 6px;
+    }
+    .sidebar-cnt {
+      font-family: var(--mono); font-size: 30px; font-weight: 700;
+      color: var(--text-bright); line-height: 1;
+    }
+    .sidebar-cnt sub {
+      font-size: 11px; font-weight: 400; color: var(--text-secondary);
+      vertical-align: baseline; margin-left: 6px;
+    }
+
+    /* Infrastructures hydrauliques sidebar */
+    .sidebar-infra {
+      padding: 14px 20px 6px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .sidebar-section-title {
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      letter-spacing: .13em; text-transform: uppercase;
+      color: var(--text-secondary); margin-bottom: 12px;
+    }
+    .infra-item {
+      margin-bottom: 12px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .infra-top {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    }
+    .infra-name {
+      font-size: 11px; font-weight: 500; color: var(--text-primary);
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .infra-val {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .infra-val.crit  { color: var(--noire); text-shadow: 0 0 10px var(--noire-glow); }
+    .infra-val.warn  { color: var(--rouge); }
+    .infra-val.watch { color: var(--orange); }
+    .infra-bar-bg {
+      height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,.06);
+      overflow: hidden;
+    }
+    .infra-bar {
+      height: 100%; border-radius: 2px;
+      animation: barGrow .9s cubic-bezier(.4,0,.2,1) both;
+    }
+    .infra-bar.crit  { background: var(--noire); box-shadow: 0 0 6px var(--noire-glow); }
+    .infra-bar.warn  { background: var(--rouge); }
+    .infra-bar.watch { background: var(--orange); }
+    @keyframes barGrow { from { width: 0 !important; } }
+    .infra-sub {
+      font-size: 10px; color: var(--text-dim);
+    }
+
+    /* Zone items sidebar */
+    .zi {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 20px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+      position: relative;
+    }
+    .zi:hover { background: rgba(255,255,255,.025); }
+    .zi::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 2px; opacity: 0; transition: opacity .2s;
+    }
+    .zi:hover::before { opacity: 1; }
+    .zi.nv-URGENCE_NOIRE::before    { background: var(--noire); }
+    .zi.nv-ALERTE_ROUGE::before     { background: var(--rouge); }
+    .zi.nv-VIGILANCE_ORANGE::before { background: var(--orange); }
+    .zi.nv-NORMAL::before           { background: var(--vert); }
+
+    .zi-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .nv-URGENCE_NOIRE   .zi-dot { background: var(--noire);  box-shadow: 0 0 7px var(--noire-glow); }
+    .nv-ALERTE_ROUGE    .zi-dot { background: var(--rouge);  box-shadow: 0 0 7px var(--rouge-glow); }
+    .nv-VIGILANCE_ORANGE .zi-dot{ background: var(--orange); }
+    .nv-NORMAL          .zi-dot { background: var(--vert); }
+
+    .zi-name {
+      font-size: 12px; font-weight: 500; color: var(--text-primary);
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .zi-badge {
+      font-family: var(--mono); font-size: 8px; font-weight: 700;
+      letter-spacing: .07em; padding: 2px 6px; border-radius: 3px; flex-shrink: 0;
+    }
+    .nv-URGENCE_NOIRE   .zi-badge { background: var(--noire-dim); color: var(--noire); border: 1px solid rgba(255,26,60,.25); }
+    .nv-ALERTE_ROUGE    .zi-badge { background: var(--rouge-dim); color: var(--rouge); border: 1px solid rgba(255,99,32,.22); }
+    .nv-VIGILANCE_ORANGE .zi-badge{ background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(245,184,0,.20); }
+    .nv-NORMAL          .zi-badge { background: var(--vert-dim); color: var(--vert); border: 1px solid rgba(0,200,122,.18); }
+
+    /* ═══ MAIN ══════════════════════════════════════════════ */
+    .main { padding: 26px 30px; display: flex; flex-direction: column; gap: 26px; }
+
+    /* ═══ KPI ROW ═══════════════════════════════════════════ */
+    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .kpi {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-card);
+      padding: 18px 20px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+      backdrop-filter: blur(12px);
+      position: relative; overflow: hidden;
+      transition: border-color .2s, transform .18s;
+    }
+    .kpi:hover { transform: translateY(-2px); }
+    .kpi::before {
+      content: ''; position: absolute; top: -20px; right: -20px;
+      width: 90px; height: 90px; border-radius: 50%;
+      opacity: .07; filter: blur(20px);
+    }
+    .kpi.kn::before { background: var(--noire); }
+    .kpi.kr::before { background: var(--rouge); }
+    .kpi.ko::before { background: var(--orange); }
+    .kpi.kn:hover { border-color: rgba(255,26,60,.30); }
+    .kpi.kr:hover { border-color: rgba(255,99,32,.25); }
+    .kpi.ko:hover { border-color: rgba(245,184,0,.20); }
+
+    /* Trait bas coloré */
+    .kpi::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; opacity: 0; transition: opacity .2s;
+    }
+    .kpi.kn::after { background: var(--noire); }
+    .kpi.kr::after { background: var(--rouge); }
+    .kpi.ko::after { background: var(--orange); }
+    .kpi.kn:hover::after, .kpi.kr:hover::after, .kpi.ko:hover::after { opacity: 1; }
+
+    .kpi-lbl {
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim);
+    }
+    .kpi-val {
+      font-family: var(--mono); font-size: 42px; font-weight: 700;
+      line-height: 1; letter-spacing: -.02em;
+    }
+    .kpi.kn .kpi-val { color: var(--noire); text-shadow: 0 0 24px var(--noire-glow); }
+    .kpi.kr .kpi-val { color: var(--rouge); text-shadow: 0 0 24px var(--rouge-glow); }
+    .kpi.ko .kpi-val { color: var(--orange); }
+    .kpi.kt .kpi-val { color: var(--text-secondary); }
+    .kpi-sub { font-size: 11px; color: var(--text-secondary); }
+
+    /* ═══ SECTION HEADER ════════════════════════════════════ */
+    .sec { display: flex; align-items: center; gap: 12px; margin-bottom: -10px; }
+    .sec-label {
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      letter-spacing: .16em; text-transform: uppercase;
+      color: var(--text-secondary); white-space: nowrap;
+    }
+    .sec-line { flex: 1; height: 1px; background: var(--border); }
+
+    /* ═══ ZONE CARDS ════════════════════════════════════════ */
+    .zones-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px,1fr));
+      gap: 14px;
+    }
+
+    .zc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-card);
+      display: flex; flex-direction: column;
+      backdrop-filter: blur(12px); overflow: hidden;
+      transition: transform .18s, border-color .18s, box-shadow .18s;
+      animation: fadeUp .35s ease both;
+    }
+    .zc:nth-child(1){animation-delay:.05s}
+    .zc:nth-child(2){animation-delay:.12s}
+    .zc:nth-child(3){animation-delay:.19s}
+    .zc:nth-child(4){animation-delay:.26s}
+    .zc:hover { transform: translateY(-3px); }
+
+    /* URGENCE NOIRE card — plus visible que les autres */
+    .zc.nv-URGENCE_NOIRE {
+      border-color: rgba(255,26,60,.30);
+      box-shadow: 0 0 0 1px rgba(255,26,60,.08) inset;
+    }
+    .zc.nv-URGENCE_NOIRE:hover {
+      border-color: rgba(255,26,60,.55);
+      box-shadow: 0 12px 48px -10px var(--noire-glow), 0 0 0 1px rgba(255,26,60,.15) inset;
+    }
+    /* Glow pulsant ambiant uniquement sur NOIRE */
+    .zc.nv-URGENCE_NOIRE::after {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: var(--r-card);
+      box-shadow: 0 0 30px -8px var(--noire-glow);
+      animation: cardGlow 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes cardGlow {
+      0%,100% { opacity: .4; }
+      50%      { opacity: .9; }
+    }
+    .zc.nv-ALERTE_ROUGE { border-color: rgba(255,99,32,.22); }
+    .zc.nv-ALERTE_ROUGE:hover { border-color: rgba(255,99,32,.42); box-shadow: 0 10px 40px -10px var(--rouge-glow); }
+    .zc.nv-VIGILANCE_ORANGE { border-color: rgba(245,184,0,.18); }
+    .zc.nv-VIGILANCE_ORANGE:hover { border-color: rgba(245,184,0,.38); box-shadow: 0 10px 40px -10px var(--orange-glow); }
+
+    /* Card head */
+    .zc-head {
+      padding: 16px 18px 14px;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+      position: relative;
+    }
+    .zc-head::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    }
+    .nv-URGENCE_NOIRE   .zc-head::before { background: linear-gradient(90deg, var(--noire) 0%, transparent 65%); }
+    .nv-ALERTE_ROUGE    .zc-head::before { background: linear-gradient(90deg, var(--rouge) 0%, transparent 65%); }
+    .nv-VIGILANCE_ORANGE .zc-head::before{ background: linear-gradient(90deg, var(--orange) 0%, transparent 65%); }
+    .nv-NORMAL          .zc-head::before { background: linear-gradient(90deg, var(--vert) 0%, transparent 65%); }
+
+    .nv-URGENCE_NOIRE   .zc-head { background: rgba(255,26,60,.07); }
+    .nv-ALERTE_ROUGE    .zc-head { background: rgba(255,99,32,.06); }
+    .nv-VIGILANCE_ORANGE .zc-head{ background: rgba(245,184,0,.05); }
+    .nv-NORMAL          .zc-head { background: rgba(0,200,122,.04); }
+
+    .zc-name {
+      font-size: 15px; font-weight: 700;
+      color: var(--text-bright);
+      letter-spacing: -.01em; line-height: 1.3;
+    }
+
+    .pill {
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      letter-spacing: .10em; padding: 4px 10px; border-radius: 4px;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .pill.URGENCE_NOIRE  { background: var(--noire-dim); color: var(--noire); border: 1px solid rgba(255,26,60,.35); }
+    .pill.ALERTE_ROUGE   { background: var(--rouge-dim); color: var(--rouge); border: 1px solid rgba(255,99,32,.30); }
+    .pill.VIGILANCE_ORANGE{ background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(245,184,0,.25); }
+    .pill.NORMAL         { background: var(--vert-dim); color: var(--vert); border: 1px solid rgba(0,200,122,.22); }
+
+    /* Barre de sévérité */
+    .severity-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 18px 14px;
+    }
+    .severity-label {
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      letter-spacing: .10em; white-space: nowrap;
+    }
+    .nv-URGENCE_NOIRE    .severity-label { color: var(--noire); }
+    .nv-ALERTE_ROUGE     .severity-label { color: var(--rouge); }
+    .nv-VIGILANCE_ORANGE .severity-label { color: var(--orange); }
+    .nv-NORMAL           .severity-label { color: var(--vert); }
+    .severity-track {
+      flex: 1; height: 3px;
+      background: rgba(255,255,255,.06);
+      border-radius: 2px; overflow: hidden;
+    }
+    .severity-fill {
+      height: 100%; border-radius: 2px;
+      transition: width 1s cubic-bezier(.4,0,.2,1);
+    }
+    .nv-URGENCE_NOIRE   .severity-fill { background: var(--noire); width: 96%; box-shadow: 0 0 8px var(--noire-glow); }
+    .nv-ALERTE_ROUGE    .severity-fill { background: var(--rouge); width: 70%; }
+    .nv-VIGILANCE_ORANGE .severity-fill{ background: var(--orange); width: 44%; }
+    .nv-NORMAL          .severity-fill { background: var(--vert);  width: 15%; }
+    .severity-pct {
+      font-family: var(--mono); font-size: 10px; font-weight: 600;
+      white-space: nowrap;
+    }
+    .nv-URGENCE_NOIRE   .severity-pct { color: var(--noire); }
+    .nv-ALERTE_ROUGE    .severity-pct { color: var(--rouge); }
+    .nv-VIGILANCE_ORANGE .severity-pct{ color: var(--orange); }
+    .nv-NORMAL          .severity-pct { color: var(--vert); }
+
+    /* Card body */
+    .zc-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 16px; }
+
+    .zc-synthese {
+      font-size: 13px; font-weight: 400;
+      color: var(--text-primary);   /* ← plus lumineux qu'avant */
+      line-height: 1.70;
+    }
+
+    /* ═══ RECOMMANDATIONS ═══════════════════════════════════ */
+    .reco-bloc {
+      display: flex; flex-direction: column; gap: 14px;
+      border-top: 1px solid var(--border); padding-top: 16px;
+    }
+    .reco-group { display: flex; flex-direction: column; gap: 8px; }
+
+    .reco-role-row { display: flex; align-items: center; gap: 9px; margin-bottom: 2px; }
+    .reco-icon {
+      width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .reco-icon.cit { background: rgba(245,184,0,.12); }
+    .reco-icon.aut { background: rgba(255,26,60,.12); }
+    /* SVG inline icons */
+    .reco-icon svg { width: 13px; height: 13px; }
+    .reco-icon.cit svg { stroke: var(--orange); }
+    .reco-icon.aut svg { stroke: var(--noire); }
+
+    .reco-role-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase;
+    }
+    .reco-role-label.cit { color: var(--orange); }
+    .reco-role-label.aut { color: var(--noire); }
+
+    /* ── LISIBILITÉ MAXIMALE des items ── */
+    .reco-ul { list-style: none; display: flex; flex-direction: column; gap: 6px; padding-left: 4px; }
+    .reco-ul li {
+      font-size: 13px;          /* ← agrandi */
+      font-weight: 500;         /* ← semi-bold */
+      color: var(--text-bright); /* ← blanc pur */
+      line-height: 1.55;
+      display: flex; gap: 10px;
+    }
+    .reco-num {
+      font-family: var(--mono);
+      font-size: 11px; font-weight: 700;
+      flex-shrink: 0; padding-top: 2px; min-width: 18px;
+    }
+    .nv-URGENCE_NOIRE   .reco-num { color: var(--noire); }
+    .nv-ALERTE_ROUGE    .reco-num { color: var(--rouge); }
+    .nv-VIGILANCE_ORANGE .reco-num{ color: var(--orange); }
+    .nv-NORMAL          .reco-num { color: var(--vert); }
+
+    /* ═══ SYNTHÈSE GLOBALE ══════════════════════════════════ */
+    .synth-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: var(--r-card);
+      padding: 22px 24px;
+      backdrop-filter: blur(12px);
+      position: relative; overflow: hidden;
+    }
+    .synth-card::before {
+      content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 2px;
+      background: linear-gradient(180deg, var(--noire), var(--rouge) 50%, var(--orange));
+    }
+    .synth-eyebrow {
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--text-secondary); margin-bottom: 10px;
+    }
+    .synth-text {
+      font-size: 13px; color: var(--text-primary); line-height: 1.75;
+    }
+
+    /* ═══ EMPTY STATE ═══════════════════════════════════════ */
+    .empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 14px; padding: 80px 20px;
+      color: var(--text-secondary); text-align: center;
+    }
+    .empty-icon { font-size: 48px; opacity: .15; filter: grayscale(1); }
+    .empty-title { font-size: 14px; font-weight: 500; }
+    .empty-sub { font-size: 12px; color: var(--text-dim); line-height: 1.65; }
+    .empty code {
+      font-family: var(--mono); font-size: 11px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      padding: 2px 8px; border-radius: 4px; color: var(--text-secondary);
+    }
+
+    /* ═══ ANIMATIONS ════════════════════════════════════════ */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ═══ RESPONSIVE ════════════════════════════════════════ */
+    @media (max-width: 920px) {
+      .layout { grid-template-columns: 1fr; grid-template-rows: 52px auto 1fr; }
+      .sidebar { grid-row: 2; max-height: 130px; border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+      .sidebar-hdr, .sidebar-infra { display: none; }
+      .zi { min-width: 160px; border-bottom: none; border-right: 1px solid var(--border); }
+      .main { grid-row: 3; padding: 18px; }
+      .kpi-row { grid-template-columns: repeat(2,1fr); }
+      .zones-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+{% set labels = {
+  'URGENCE_NOIRE':    '⬛ URGENCE NOIRE — NIVEAU MAXIMAL',
+  'ALERTE_ROUGE':     '🔴 ALERTE ROUGE — DANGER ÉLEVÉ',
+  'VIGILANCE_ORANGE': '🟠 VIGILANCE ORANGE — SURVEILLANCE RENFORCÉE',
+  'NORMAL':           '🟢 EN ATTENTE — AUCUNE ALERTE'
+} %}
+
+<!-- ─── BANNER ──────────────────────────────────────────────── -->
+<header class="alert-banner bn-{{ niveau_global }}">
+  <div class="banner-dot"></div>
+  <span class="banner-label">{{ labels[niveau_global] }}</span>
+  <div class="banner-sep"></div>
+  <div class="banner-right">
+    <span class="banner-meta"><span class="banner-meta-dot"></span>{{ nb_zones }} zones analysées</span>
+    <span class="banner-meta"><span class="banner-meta-dot"></span>{{ date_rapport }}</span>
+    <span class="banner-logo">GEO-RISK ◈ MAROC</span>
+  </div>
+</header>
+
+<!-- ─── SIDEBAR ────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-hdr">
+    <div class="sidebar-eyebrow">Zones à risque</div>
+    <div class="sidebar-cnt">{{ nb_zones }}<sub>zones</sub></div>
+  </div>
+
+  <!-- Statut infrastructures hydrauliques -->
+  <div class="sidebar-infra">
+    <div class="sidebar-section-title">Infrastructures hydrauliques</div>
+
+    <div class="infra-item">
+      <div class="infra-top">
+        <span class="infra-name">Oued Ouerrha</span>
+        <span class="infra-val crit">1 250 m³/s</span>
+      </div>
+      <div class="infra-bar-bg"><div class="infra-bar crit" style="width:96%"></div></div>
+      <div class="infra-sub">Seuil critique : &gt; 1 200 m³/s</div>
+    </div>
+
+    <div class="infra-item">
+      <div class="infra-top">
+        <span class="infra-name">Barrage Garde Sebou</span>
+        <span class="infra-val crit">96.8%</span>
+      </div>
+      <div class="infra-bar-bg"><div class="infra-bar crit" style="width:96.8%"></div></div>
+      <div class="infra-sub">Capacité maximale</div>
+    </div>
+
+    <div class="infra-item">
+      <div class="infra-top">
+        <span class="infra-name">Barrage Allal El Fassi</span>
+        <span class="infra-val warn">90.2%</span>
+      </div>
+      <div class="infra-bar-bg"><div class="infra-bar warn" style="width:90.2%"></div></div>
+      <div class="infra-sub">Seuil d'alerte dépassé</div>
+    </div>
+
+    <div class="infra-item">
+      <div class="infra-top">
+        <span class="infra-name">Barrage Sidi Said Maachou</span>
+        <span class="infra-val watch">100%</span>
+      </div>
+      <div class="infra-bar-bg"><div class="infra-bar watch" style="width:100%"></div></div>
+      <div class="infra-sub">Déversoir actif</div>
+    </div>
+
+  </div>
+
+  {% for z in zones %}
+  <div class="zi nv-{{ z.niveau }}"
+       onclick="document.getElementById('z{{ loop.index0 }}').scrollIntoView({behavior:'smooth',block:'center'})">
+    <div class="zi-dot"></div>
+    <div class="zi-name">{{ z.province }}</div>
+    <div class="zi-badge">
+      {% if z.niveau == 'URGENCE_NOIRE' %}NOIRE
+      {% elif z.niveau == 'ALERTE_ROUGE' %}ROUGE
+      {% elif z.niveau == 'VIGILANCE_ORANGE' %}ORANGE
+      {% else %}OK{% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div style="padding:18px 20px;font-size:11px;color:var(--text-dim)">En attente du rapport...</div>
+  {% endfor %}
+</aside>
+
+<!-- ─── MAIN ────────────────────────────────────────────────── -->
+<main class="main">
+
+  {% set nn = [] %}{% set nr = [] %}{% set no = [] %}
+  {% for z in zones %}
+    {% if z.niveau == 'URGENCE_NOIRE' %}{% set _ = nn.append(1) %}
+    {% elif z.niveau == 'ALERTE_ROUGE' %}{% set _ = nr.append(1) %}
+    {% elif z.niveau == 'VIGILANCE_ORANGE' %}{% set _ = no.append(1) %}
+    {% endif %}
+  {% endfor %}
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi kn">
+      <div class="kpi-lbl">Urgence noire</div>
+      <div class="kpi-val">{{ nn|length }}</div>
+      <div class="kpi-sub">zones en danger maximal</div>
+    </div>
+    <div class="kpi kr">
+      <div class="kpi-lbl">Alerte rouge</div>
+      <div class="kpi-val">{{ nr|length }}</div>
+      <div class="kpi-sub">zones en danger élevé</div>
+    </div>
+    <div class="kpi ko">
+      <div class="kpi-lbl">Vigilance orange</div>
+      <div class="kpi-val">{{ no|length }}</div>
+      <div class="kpi-sub">zones surveillées</div>
+    </div>
+    <div class="kpi kt">
+      <div class="kpi-lbl">Zones totales</div>
+      <div class="kpi-val">{{ nb_zones }}</div>
+      <div class="kpi-sub">confluences analysées</div>
+    </div>
+  </div>
+
+  {% if zones %}
+  <!-- Section zones -->
+  <div class="sec">
+    <span class="sec-label">Détail par zone</span>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="zones-grid">
+    {% for z in zones %}
+
+    {# score et label sévérité par niveau #}
+    {% if z.niveau == 'URGENCE_NOIRE' %}
+      {% set sev_pct = '96%' %}
+    {% elif z.niveau == 'ALERTE_ROUGE' %}
+      {% set sev_pct = '70%' %}
+    {% elif z.niveau == 'VIGILANCE_ORANGE' %}
+      {% set sev_pct = '44%' %}
+    {% else %}
+      {% set sev_pct = '15%' %}
+    {% endif %}
+
+    <div class="zc nv-{{ z.niveau }}" id="z{{ loop.index0 }}" style="position:relative">
+
+      <!-- Head -->
+      <div class="zc-head">
+        <div class="zc-name">{{ z.province }}</div>
+        <span class="pill {{ z.niveau }}">
+          {% if z.niveau == 'URGENCE_NOIRE' %}NOIRE
+          {% elif z.niveau == 'ALERTE_ROUGE' %}ROUGE
+          {% elif z.niveau == 'VIGILANCE_ORANGE' %}ORANGE
+          {% else %}NORMAL{% endif %}
+        </span>
+      </div>
+
+      <!-- Barre de sévérité -->
+      <div class="severity-row">
+        <span class="severity-label">SÉVÉRITÉ</span>
+        <div class="severity-track"><div class="severity-fill"></div></div>
+        <span class="severity-pct">{{ sev_pct }}</span>
+      </div>
+
+      <!-- Body -->
+      <div class="zc-body">
+        <div class="zc-synthese">{{ z.synthese }}</div>
+
+        {% if z.recos %}
+        <div class="reco-bloc">
+          {% for role, lignes in z.recos %}
+          {% set is_cit = 'citoyen' in role.lower() %}
+          <div class="reco-group">
+            <div class="reco-role-row">
+              <div class="reco-icon {% if is_cit %}cit{% else %}aut{% endif %}">
+                {% if is_cit %}
+                <!-- icône personnes SVG -->
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="7" r="3"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+                  <circle cx="17" cy="7" r="2"/><path d="M21 21v-2a3 3 0 0 0-2-2.83"/>
+                </svg>
+                {% else %}
+                <!-- icône bâtiment SVG -->
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="1"/>
+                  <path d="M9 22V12h6v10"/><path d="M9 7h1m4 0h1M9 11h1m4 0h1"/>
+                </svg>
+                {% endif %}
+              </div>
+              <span class="reco-role-label {% if is_cit %}cit{% else %}aut{% endif %}">{{ role }}</span>
+            </div>
+            <ul class="reco-ul">
+              {% for ligne in lignes %}
+              <li>
+                <span class="reco-num">{{ loop.index }}.</span>
+                <span>{{ ligne }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if synthese_globale %}
+  <div class="sec">
+    <span class="sec-label">Synthèse globale</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="synth-card">
+    <div class="synth-eyebrow">Bilan des confluences de risques — Moteur Geo-Risk</div>
+    <div class="synth-text">{{ synthese_globale }}</div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">🛰️</div>
+    <div class="empty-title">En attente du rapport de l'orchestrateur</div>
+    <div class="empty-sub">
+      Lancez <code>python main.py</code> pour démarrer l'analyse.<br/>
+      Le dashboard se met à jour automatiquement.
+    </div>
+  </div>
+  {% endif %}
+
+</main>
+</div>
+
+<!-- Auto-refresh inchangé -->
+<script>
+  let _lastZones = {{ nb_zones }};
+  setInterval(async () => {
+    try {
+      const r = await fetch('/api/report');
+      const d = await r.json();
+      if (d.zones !== _lastZones) location.reload();
+    } catch(e) {}
+  }, 3000);
+</script>
+</body>
+</html>
