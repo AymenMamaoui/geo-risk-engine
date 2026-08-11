@@ -8,11 +8,14 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import uvicorn
 from datetime import datetime
+from agents.chat_agent import ChatAgent
 
 app = FastAPI(title="Geo-Risk Maroc Dashboard")
+
+chat_agent = ChatAgent()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 jinja_env = Environment(
@@ -36,6 +39,16 @@ class ConfluenceRisque(BaseModel):
 
 class GeoRiskReportIn(BaseModel):
     confluences_risques_majeurs: List[ConfluenceRisque]
+
+
+class ChatMessage(BaseModel):
+    role: str      # "user" ou "assistant"
+    content: str
+
+
+class ChatRequest(BaseModel):
+    question: str
+    historique: Optional[List[ChatMessage]] = []
 
 
 # ─── Normalisation niveau ─────────────────────────────────────────────────────
@@ -139,6 +152,24 @@ async def get_report():
 async def health():
     return {"status": "running", "last_update": _state["date_rapport"]}
 
+
+@app.post("/api/chat")
+async def chat(req: ChatRequest):
+    """
+    Reçoit une question + l'historique (fourni par le client),
+    interroge le ChatAgent avec le _state courant comme contexte,
+    et renvoie la réponse. Aucun historique n'est stocké côté serveur.
+    """
+    # On convertit l'historique Pydantic en simples dicts
+    historique = [{"role": m.role, "content": m.content} for m in (req.historique or [])]
+
+    reponse = chat_agent.repondre(
+        question=req.question,
+        state=_state,
+        historique=historique,
+    )
+
+    return {"reponse": reponse}
 
 if __name__ == "__main__":
     print("=" * 54)
