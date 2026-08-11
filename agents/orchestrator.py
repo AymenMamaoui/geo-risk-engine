@@ -2,6 +2,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from core.config import GROQ_API_KEY
+import httpx
 from schemas.data_models import GeoRiskReport, MeteoAnalysisReport, HydrauliqueAnalysisReport
 
 
@@ -92,3 +93,11 @@ class OrchestratorAgent:
 
         print("[Orchestrateur] Croisement des données Météo et Hydrauliques en cours...")
         return (prompt | self.struct_report).invoke({"contexte": contexte})
+    # Pour les dashboards
+    def envoyer_au_dashboard(rapport: GeoRiskReport):
+        with httpx.Client() as client:
+            client.post(
+                "http://localhost:8000/api/report",
+                content=rapport.model_dump_json(),
+                headers={"Content-Type": "application/json"}
+            )
