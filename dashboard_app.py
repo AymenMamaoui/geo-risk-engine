@@ -7,11 +7,13 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
-from pydantic import BaseModel
-from typing import List, Optional
 import uvicorn
 from datetime import datetime
+from fastapi import FastAPI, Request, UploadFile, File, Form
+from pydantic import BaseModel
+from typing import List, Optional, Dict
 from agents.chat_agent import ChatAgent
+from tools.pdf_loader import extraire_texte_depuis_bytes
 
 app = FastAPI(title="Geo-Risk Maroc Dashboard")
 
@@ -49,6 +51,8 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     question: str
     historique: Optional[List[ChatMessage]] = []
+    # bulletins fournis par le client : {"meteo": "...", "hydro": "..."}
+    bulletins: Optional[Dict[str, str]] = None
 
 
 # ─── Normalisation niveau ─────────────────────────────────────────────────────
@@ -155,22 +159,47 @@ async def health():
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
-    """
-    Reçoit une question + l'historique (fourni par le client),
-    interroge le ChatAgent avec le _state courant comme contexte,
-    et renvoie la réponse. Aucun historique n'est stocké côté serveur.
-    """
-    # On convertit l'historique Pydantic en simples dicts
     historique = [{"role": m.role, "content": m.content} for m in (req.historique or [])]
 
     reponse = chat_agent.repondre(
         question=req.question,
         state=_state,
         historique=historique,
+        bulletins=req.bulletins,  # <- transmis au LLM comme contexte
     )
-
     return {"reponse": reponse}
 
+
+@app.post("/api/chat/upload")
+async def upload_bulletin(
+        fichier: UploadFile = File(...),
+        type_bulletin: str = Form(...),  # "meteo" ou "hydro"
+):
+    # Validation du type
+    if type_bulletin not in ("meteo", "hydro"):
+        return {"ok": False, "erreur": "Type invalide. Attendu : 'meteo' ou 'hydro'."}
+
+    # Lecture des bytes du fichier uploadé
+    contenu = await fichier.read()
+
+    # Garde-fou taille (ex : 10 Mo max)
+    if len(contenu) > 10 * 1024 * 1024:
+        return {"ok": False, "erreur": "Fichier trop volumineux (max 10 Mo)."}
+
+    # Extraction via la brique pdf_loader
+    texte = extraire_texte_depuis_bytes(contenu, filename=fichier.filename or "")
+
+    if not texte or texte.startswith("Erreur"):
+        return {"ok": False, "erreur": texte or "Extraction impossible."}
+
+    # On renvoie le texte au frontend, qui le renverra avec les prochaines questions
+    return {
+        "ok": True,
+        "type": type_bulletin,
+        "filename": fichier.filename,
+        "texte": texte,
+        "apercu": texte[:200] + ("..." if len(texte) > 200 else ""),
+    }
 if __name__ == "__main__":
     print("=" * 54)
     print("  GEO-RISK DASHBOARD — http://localhost:8000")
