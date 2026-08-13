@@ -1,0 +1,27 @@
+# Les clés des API
+.env
+.env.*
+!.env.example
+
+# Environnement virtuel local (inutile dans l'image)
+myenvironement/
+venv/
+.venv/
+
+# Caches Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Git & IDE
+.git/
+.gitignore
+.idea/
+.vscode/
+
+
+*.md
+Extensions/
+*.log

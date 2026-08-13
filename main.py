@@ -14,7 +14,6 @@ from agents.orchestrator import OrchestratorAgent
 from agents.notifier_agent import NotifierAgent
 from tools.pdf_loader import extraire_texte_depuis_url
 
-# ── Dashboard (optionnel — ne bloque pas le moteur si le serveur est absent) ──
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:8000/api/report")
 
 
