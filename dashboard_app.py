@@ -4,7 +4,6 @@ Lancer : python dashboard_app.py  →  http://localhost:8000
 """
 
 import os
-from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 import uvicorn
@@ -14,6 +13,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict
 from agents.chat_agent import ChatAgent
 from tools.pdf_loader import extraire_texte_depuis_bytes
+from demo_data import DEMO_REPORT
 
 app = FastAPI(title="Geo-Risk Maroc Dashboard")
 
@@ -114,6 +114,46 @@ _state = {
     "zones":            [],   # liste de dicts avec uniquement str/list/tuple
 }
 
+
+def _construire_state_depuis_rapport(rapport: dict) -> dict:
+    """
+    Transforme un rapport brut (format /api/report) en _state,
+    en réutilisant EXACTEMENT la même logique que la vraie route.
+    """
+    confluences = rapport.get("confluences_risques_majeurs", [])
+
+    # niveau global : on réutilise la logique, mais sur des dicts bruts
+    ng = "NORMAL"
+    for p in ["URGENCE_NOIRE", "ALERTE_ROUGE", "VIGILANCE_ORANGE", "NORMAL"]:
+        if any(normaliser(c["niveau_alerte_combine"]) == p for c in confluences):
+            ng = p
+            break
+
+    zones = []
+    for c in confluences:
+        recos = parse_recommandations(c["recommandations_terrain"])
+        zones.append({
+            "province": c["localisation_impactee"],
+            "niveau": normaliser(c["niveau_alerte_combine"]),
+            "niveau_label": c["niveau_alerte_combine"].upper(),
+            "synthese": c["synthese_decisionnelle"],
+            "recos": recos,
+        })
+
+    return {
+        "date_rapport": datetime.now().strftime("%d/%m/%Y %H:%M"),
+        "niveau_global": ng,
+        "synthese_globale": " — ".join(c["synthese_decisionnelle"] for c in confluences),
+        "nb_zones": len(zones),
+        "zones": zones,
+    }
+
+
+USE_DEMO_DATA = os.getenv("USE_DEMO_DATA", "true").lower() == "true"
+
+if USE_DEMO_DATA:
+    _state = _construire_state_depuis_rapport(DEMO_REPORT)
+    print("[Dashboard] State initialisé avec les données de démonstration.")
 
 # ─── Routes ──────────────────────────────────────────────────────────────────
 
