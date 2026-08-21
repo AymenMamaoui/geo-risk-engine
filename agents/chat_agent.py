@@ -5,7 +5,7 @@ Répond aux questions sur :
   1. la SITUATION COURANTE (le dernier rapport de l'orchestrateur, _state)
   2. les BULLETINS UPLOADÉS par l'utilisateur (météo et/ou hydraulique)
 
-Toujours pas de vector store : on injecte le texte dans le contexte.
+Pas de vector store : on injecte le texte dans le contexte.
 Multi-session : l'agent est SANS ÉTAT. Historique ET bulletins sont
 fournis à chaque appel par le frontend, jamais stockés côté serveur.
 

@@ -9,7 +9,6 @@ class NotifierAgent:
 
         # 1. CONFIGURATION DES PASSERELLES (API)
 
-
         # Configuration Email (Destiné aux Autorités)
         self.email_address = EMAIL_ADDRESS
         self.email_password = EMAIL_PASSWORD
@@ -20,9 +19,7 @@ class NotifierAgent:
         self.twilio_phone_number = TWILIO_PHONE_NUMBER  # Numéro virtuel Twilio
         self.twilio_client = Client(self.twilio_account_sid, self.twilio_auth_token)
 
-    # ==========================================
     # 2. LOGIQUE PRINCIPALE D'ORCHESTRATION
-    # ==========================================
 
     def process_notifications(self, rapport_json):
         """
@@ -69,9 +66,9 @@ class NotifierAgent:
             print(f" Erreur de parsing des recommandations : {e}")
             return texte_complet, texte_complet
 
-    # ==========================================
+
     # 3. MÉTHODES D'EXÉCUTION (OUTILS)
-    # ==========================================
+
 
     def _envoyer_email_autorites(self, localisation, niveau, synthese, recommandations):
         """ Construit et envoie un mail HTML structuré au PC de crise. """

@@ -31,7 +31,7 @@ def render(template_name: str, **ctx) -> HTMLResponse:
     return HTMLResponse(content=tmpl.render(**ctx))
 
 
-# ─── Schéma entrant (structure réelle de l'orchestrateur) ────────────────────
+# Schéma entrant (structure réelle de l'orchestrateur)
 
 class ConfluenceRisque(BaseModel):
     localisation_impactee:   str
@@ -55,7 +55,7 @@ class ChatRequest(BaseModel):
     bulletins: Optional[Dict[str, str]] = None
 
 
-# ─── Normalisation niveau ─────────────────────────────────────────────────────
+# Normalisation niveau
 
 NIVEAU_MAP = {
     "urgence noire":    "URGENCE_NOIRE",
@@ -74,7 +74,7 @@ def niveau_global(confluences: List[ConfluenceRisque]) -> str:
     return "NORMAL"
 
 
-# ─── Parsing recommandations → liste de tuples (role, [lignes]) ──────────────
+# Parsing recommandations → liste de tuples (role, [lignes])
 # On utilise des TUPLES et des LISTES, jamais des dicts,
 # pour éviter tout conflit avec les méthodes Python dans Jinja2.
 
@@ -104,7 +104,7 @@ def parse_recommandations(texte: str):
     return sections
 
 
-# ─── État global : tout en types primitifs Python (str, list, tuple) ─────────
+# État global : tout en types primitifs Python (str, list, tuple)
 
 _state = {
     "date_rapport":     "—",
@@ -155,7 +155,7 @@ if USE_DEMO_DATA:
     _state = _construire_state_depuis_rapport(DEMO_REPORT)
     print("[Dashboard] State initialisé avec les données de démonstration.")
 
-# ─── Routes ──────────────────────────────────────────────────────────────────
+# Routes
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
